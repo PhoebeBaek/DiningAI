@@ -5,3 +5,4 @@
 3. query agent가 MongoDB MCP 서버를 활용해 식료품 데이터를 DB에서 쿼리
 
 <img width="938" alt="Image" src="https://github.com/user-attachments/assets/3ba31286-4702-4a80-8ef4-2e30de8fc3b8" />
+![Image](https://github.com/user-attachments/assets/801aa41f-7133-4e30-9bdc-5b1da58e1dcc)
