@@ -36,8 +36,9 @@ def input_image(image_path):
     # Initialize the model client
     llm = ChatBedrock(
         region="us-east-1",
-        provider = "anthropic",
-        model_id = "anthropic.claude-3-sonnet-20240229-v1:0",
+        # provider = "anthropic",
+        # model_id = "anthropic.claude-3-sonnet-20240229-v1:0",
+        model_id = "amazon.nova-pro-v1:0",
         model_kwargs = {"temperature": 1}
     )
 
@@ -53,7 +54,8 @@ def input_image(image_path):
                     </Tasks>
 
                     <Rules>
-                    1. Return ONLY a Python list of ingredients, nothing else
+                    1. Return the analysis result in the format below.
+                    {Ingredients: ['소고기', '감자', '당근']}
                     2. Each element in array should be a string
                     3. Do not include any other text or formatting
                     </Rules>
@@ -63,7 +65,7 @@ def input_image(image_path):
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": "image/png",
+                    "media_type": "image/jpeg",
                     "data": base64_image
                 }
             }
@@ -75,78 +77,54 @@ def input_image(image_path):
 
 
 
-@mcp.tool()
-def mongodb_query(input_items):
-    """
-    Implement text to sql and run query in MongoDB.
-    Args:
-        input_items: String representation of a list of items from `menu_analysis_assistant`.
+# @mcp.tool()
+# def mongodb_query(input_items):
+#     """
+#     Implement text to sql and run query in MongoDB.
+#     Args:
+#         input_items: String representation of a list of items from `menu_analysis_assistant`.
         
-    Returns:
-        Query output return by MongoDB.
-    """
+#     Returns:
+#         Query output return by MongoDB.
+#     """
 
-    client = MongoClient(config.URI)
-    db = client["dining_ai"]
-    collection = db["items"]
-
-    # Initialize the model client
-    llm = ChatBedrock(
-        region="us-east-1",
-        provider = "anthropic",
-        model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-        # model_id = "amazon.nova-pro-v1:0"
-    )
-    #Define a message
-    message = HumanMessage(
-        content=[
-            {
-                "type": "text",
-                    "text": f"""
-                    You are a MongoDB expert. Your task is writing MongoDB aggregation API to query a item based on the input_items.
-                    The input_items is {input_items}.
-                    Below is the schema sample in dining_ai.items namespace in MongoDB for your information.
-
-                    <Rules>
-                        1. Find the first item in input_items to understand what data needs to be found. If the input_items is ['사과', '부추'], only '사과' is used to query the item.
-                        2. Create a MongoDB aggregation API for only the first item based on the input.
-                        3. Add limit stage to limit the number of results to 3.
-                        4. Return MongoDB aggregation API in valid JSON format.
-                        5. Do not include any markdown formatting and additional filters.
-                    </Rules>
-                    <Example>
-                    Input: {{
-                                "source":"menu_analysis_assistant"
-                                "models_usage":NULL
-                                "metadata":{{}}
-                                "content":"[TextContent(type='text', text="['오징어', '부추']", annotations=None)]"
-                                "type":"ToolCallSummaryMessage"
-                            }}
-                    Return: [{{'$search':{{'text':{{'query':'고기','path':'title'}}}}}},{{'$limit':3}}]
-                    </Example>
-
-                    <Schema sample>
-                    {{"_id":{{"$oid":"681715a9cc50fd56598796f6"}},"title":"미국산 프라임 척아이롤(목심+등심) 100G/소고기","lprice":"16380","hprice":"","mallName":"Homeplus","productId":"82539599247","productType":"2","brand":"","maker":"","category1":"식품","category2":"축산물","category3":"쇠고기","category4":"수입산쇠고기"}}
-                    </Schema sample>
-                """
-            }
-        ]
-    )
-
-    # Invoke LLM
-    mql = llm.invoke([message]).content
-    print(mql)
-    response = eval(f"collection.aggregate({mql})")
-    item_list = []
-    for item in response:
-        item_list.append(item)
-    print(item_list)
-    return item_list
+#     try:
+#         # Parse the input_items string to get the actual list
+#         if input_items.startswith("{Ingredients:"):
+#             input_items = input_items[11:-1]  # Remove {Ingredients: and ]
+#         items_list = ast.literal_eval(f"[{input_items}]")
+        
+#         # Get the first item from the list
+#         query_item = items_list[0] if items_list else None
+        
+#         if not query_item:
+#             return []
+            
+#         # Construct the MongoDB query
+#         query = [
+#             {"$search": {"text": {"query": query_item, "path": "title"}}},
+#             {"$limit": 3}
+#         ]
+        
+#         # Connect to MongoDB
+#         client = MongoClient(config.URI)
+#         db = client["dining_ai"]
+#         collection = db["items"]
+        
+#         # Execute the query
+#         response = collection.aggregate(query)
+#         item_list = list(response)
+        
+#         return item_list
+        
+#     except Exception as e:
+#         print(f"Error in mongodb_query: {str(e)}")
+#         return []
 
 
 @mcp.tool()
 def embed_image(image_path):
-    # image_path = "/Users/sojeong/study/pseudo/image.png"
+    # image_path = "/Users/sojeong/study/pseudo/image.jpeg"
     embedding_dimension = 512
     model = MultiModalEmbeddingModel.from_pretrained("multimodalembedding@001")
     image = Image.load_from_file(
